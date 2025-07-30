@@ -1,4 +1,3 @@
-// lib/fal.ts
 import { fal } from "@fal-ai/client";
 
 fal.config({

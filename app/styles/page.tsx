@@ -4,6 +4,9 @@ import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { fal } from '@fal-ai/client';
 
+
+
+
 export default function StylesPage() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
