@@ -6,7 +6,7 @@
  * or disable the default devtool with "devtool: false".
  * If you are looking for production-ready output files, see mode: "production" (https://webpack.js.org/configuration/mode/).
  */
-(self["webpackChunk_N_E"] = self["webpackChunk_N_E"] || []).push([["app/page"],{
+self["webpackHotUpdate_N_E"]("app/page",{
 
 /***/ "(app-pages-browser)/./node_modules/.pnpm/next@14.0.0_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/next/dist/build/webpack/loaders/next-flight-client-entry-loader.js?modules=%2FUsers%2Fsean%2Fdragyourself%2Fapp%2Fpage.tsx&server=false!":
 /*!******************************************************************************************************************************************************************************************************************************************!*\
@@ -73,11 +73,4 @@ eval(__webpack_require__.ts("\n\nif (false) {} else {\n  module.exports = __webp
 
 /***/ })
 
-},
-/******/ function(__webpack_require__) { // webpackRuntimeModules
-/******/ var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId); }
-/******/ __webpack_require__.O(0, ["main-app"], function() { return __webpack_exec__("(app-pages-browser)/./node_modules/.pnpm/next@14.0.0_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/next/dist/build/webpack/loaders/next-flight-client-entry-loader.js?modules=%2FUsers%2Fsean%2Fdragyourself%2Fapp%2Fpage.tsx&server=false!"); });
-/******/ var __webpack_exports__ = __webpack_require__.O();
-/******/ _N_E = __webpack_exports__;
-/******/ }
-]);
+});
