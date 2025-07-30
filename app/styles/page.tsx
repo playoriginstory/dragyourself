@@ -1,10 +1,8 @@
 // app/styles/page.tsx
 'use client';
 import * as React from 'react';
-import { useEffect, useState } from "react";
-import { uploadImageAndGenerate } from "../../lib/fal";
-
-let uploadedFile: File | null = null;
+import { useEffect, useState } from 'react';
+import { fal } from '@fal-ai/client';
 
 export default function StylesPage() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -12,15 +10,35 @@ export default function StylesPage() {
 
   useEffect(() => {
     const run = async () => {
-      if (!uploadedFile) return;
+      const reference_image_url = localStorage.getItem("uploadedImageURL");
       const prompt = localStorage.getItem("stylePrompt") || "";
-      const url = await uploadImageAndGenerate(prompt, uploadedFile);
-      if (url) {
-        setImageUrl(url);
-        localStorage.setItem("dragImage", url); // 👈 Store it here
+
+      if (!reference_image_url || !prompt) {
+        setLoading(false);
+        return;
       }
+
+      const result = await fal.subscribe("fal-ai/flux-pulid", {
+        input: {
+          prompt,
+          reference_image_url,
+          image_size: "portrait_4_3",
+          num_inference_steps: 20,
+          guidance_scale: 4,
+          negative_prompt: "bad quality, worst quality, text, signature, watermark, extra limbs",
+          enable_safety_checker: true,
+        },
+      });
+
+      const generatedUrl = result.data?.images?.[0]?.url;
+      if (generatedUrl) {
+        setImageUrl(generatedUrl);
+        localStorage.setItem("dragImage", generatedUrl);
+      }
+
       setLoading(false);
     };
+
     run();
   }, []);
 

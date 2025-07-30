@@ -1,6 +1,7 @@
 // components/StyleSelector.tsx
 'use client';
 import * as React from 'react';
+
 const styles = [
   "Glamazon Queen", "Cyberpunk Diva", "Disco Inferno", "Baroque Beauty",
   "Pastel Princess", "Fierce Femme", "Alien Royalty", "Fantasy Fairy",
@@ -9,18 +10,33 @@ const styles = [
 ];
 
 export default function StyleSelector({
-  selected, setSelected
+  selected,
+  setSelected
 }: {
-  selected: string | null;
-  setSelected: (style: string) => void;
+  selected: string[];
+  setSelected: (styles: string[]) => void;
 }) {
+  const toggleStyle = (style: string) => {
+    if (selected.includes(style)) {
+      setSelected(selected.filter(s => s !== style));
+    } else if (selected.length < 8) {
+      setSelected([...selected, style]);
+    } else {
+      alert("You can select up to 8 styles.");
+    }
+  };
+
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
       {styles.map((style) => (
         <button
           key={style}
-          onClick={() => setSelected(style)}
-          className={`border p-2 text-xs rounded ${selected === style ? "bg-pink-500 text-white" : "bg-white"}`}
+          onClick={() => toggleStyle(style)}
+          className={`border p-2 text-xs rounded ${
+            selected.includes(style)
+              ? "bg-pink-500 text-white"
+              : "bg-white"
+          }`}
         >
           {style}
         </button>
