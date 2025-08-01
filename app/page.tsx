@@ -1,4 +1,3 @@
-// app/page.tsx
 'use client';
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -7,7 +6,7 @@ import StyleSelector from '../components/StyleSelector';
 
 export default function HomePage() {
   const router = useRouter();
-  const [styles, setStyles] = useState<string[]>([]);
+  const [style, setStyle] = useState<string | null>(null); // single style
   const fileRef = useRef<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
@@ -33,8 +32,8 @@ export default function HomePage() {
       alert('Please upload an image');
       return;
     }
-    if (mode === 'single' && styles.length === 0) {
-      alert('Please select at least one style');
+    if (mode === 'single' && !style) {
+      alert('Please select a style');
       return;
     }
 
@@ -59,7 +58,7 @@ export default function HomePage() {
               'Alien Royalty',
               'Fantasy Fairy',
             ]
-          : styles,
+          : [style],
         isCompetition: mode === 'competition',
       };
 
@@ -68,6 +67,7 @@ export default function HomePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+
       if (!res.ok) throw new Error((await res.json()).error || 'Generation failed');
       const data = await res.json();
 
@@ -87,7 +87,7 @@ export default function HomePage() {
     }
   };
 
-  const canSubmit = !!fileRef.current && (mode === 'competition' || styles.length > 0);
+  const canSubmit = !!fileRef.current && (mode === 'competition' || !!style);
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
@@ -103,7 +103,7 @@ export default function HomePage() {
           <button
             onClick={() => {
               setMode('single');
-              setStyles([]);
+              setStyle(null);
               setCompetitionResults([]);
               setResultUrl(null);
               setSelectedIdx(null);
@@ -119,7 +119,7 @@ export default function HomePage() {
           <button
             onClick={() => {
               setMode('competition');
-              setStyles([]);
+              setStyle(null);
               setCompetitionResults([]);
               setResultUrl(null);
               setSelectedIdx(null);
@@ -136,7 +136,7 @@ export default function HomePage() {
       </div>
 
       {mode === 'single' && (
-        <StyleSelector selected={styles} setSelected={setStyles} />
+        <StyleSelector selected={style} setSelected={setStyle} />
       )}
 
       {mode === 'competition' && competitionResults.length === 0 && (
@@ -171,7 +171,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Single result view */}
       {resultUrl && mode === 'single' && (
         <div className="mt-6 space-y-4 text-center">
           <h2 className="text-xl font-semibold">Your Drag Transformation</h2>
@@ -181,7 +180,11 @@ export default function HomePage() {
             className="mx-auto rounded-lg shadow-md max-w-full"
           />
           <div className="flex justify-center space-x-2">
-            <a href={resultUrl} download className="px-4 py-2 bg-green-500 text-white rounded">
+            <a
+              href={resultUrl}
+              download
+              className="px-4 py-2 bg-green-500 text-white rounded"
+            >
               Download
             </a>
             <button
@@ -195,7 +198,7 @@ export default function HomePage() {
             <button
               onClick={() => {
                 setResultUrl(null);
-                setStyles([]);
+                setStyle(null);
                 fileRef.current = null;
               }}
               className="px-4 py-2 bg-gray-500 text-white rounded"
@@ -206,7 +209,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Competition pick-one view */}
       {competitionResults.length > 0 && mode === 'competition' && (
         <div className="mt-6 space-y-4">
           <h2 className="text-2xl font-semibold text-center">🏆 Competition Results</h2>
@@ -265,6 +267,6 @@ export default function HomePage() {
           </div>
         </div>
       )}
-    </div>
+    </div> // closes top-level container
   );
 }
