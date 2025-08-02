@@ -31,7 +31,7 @@ export default function Upload({ onUpload }: UploadProps) {
     reader.readAsDataURL(file);
 
     // Call parent callback
-    onUpload(file);
+    onUpload(base64);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
