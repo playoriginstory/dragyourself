@@ -34,13 +34,26 @@ export default function Upload({ onUpload }: UploadProps) {
         file.name.toLowerCase().endsWith('.heic') ||
         file.name.toLowerCase().endsWith('.heif')
       ) {
-        const heic2any = (await import('heic2any')).default; // ⬅️ Safe dynamic import
-        const convertedBlob = await heic2any({ blob: file, toType: 'image/jpeg' });
-        finalFile = new File(
-          [convertedBlob as BlobPart],
-          file.name.replace(/\.(heic|heif)$/i, '.jpg'),
-          { type: 'image/jpeg' }
-        );
+        try {
+          const heic2any = (await import('heic2any')).default;
+  
+          const convertedBlob = await heic2any({
+            blob: file,
+            toType: 'image/jpeg',
+          });
+  
+          if (!convertedBlob) throw new Error('Conversion returned empty blob');
+  
+          finalFile = new File(
+            [convertedBlob as BlobPart],
+            file.name.replace(/\.(heic|heif)$/i, '.jpg'),
+            { type: 'image/jpeg' }
+          );
+        } catch (convertError) {
+          console.error('HEIC -> JPEG conversion failed:', convertError);
+          alert('Failed to convert HEIC image. Try uploading a different image or use JPG/PNG.');
+          return;
+        }
       }
   
       const reader = new FileReader();
@@ -49,10 +62,15 @@ export default function Upload({ onUpload }: UploadProps) {
         setPreview(base64);
         onUpload(base64);
       };
+      reader.onerror = () => {
+        console.error('FileReader failed to read the image');
+        alert('Failed to read the image. Try a different file.');
+      };
+  
       reader.readAsDataURL(finalFile);
     } catch (error) {
-      console.error('HEIC conversion failed:', error);
-      alert('Failed to convert HEIC image. Try a different file.');
+      console.error('Unexpected error during image upload:', error);
+      alert('Something went wrong while processing your image.');
     }
   };
   
