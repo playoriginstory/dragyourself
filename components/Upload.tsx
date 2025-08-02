@@ -24,6 +24,11 @@ export default function Upload({ onUpload }: UploadProps) {
   };
 
   const convertHEICOnServer = async (file: File): Promise<string> => {
+    // Additional file size check for server upload
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit for HEIC conversion
+      throw new Error('HEIC files must be smaller than 5MB for conversion. Please use a smaller image or convert to JPG first.');
+    }
+
     const formData = new FormData();
     formData.append('file', file);
 
@@ -32,6 +37,15 @@ export default function Upload({ onUpload }: UploadProps) {
         method: 'POST',
         body: formData,
       });
+
+      // Check if response is actually JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        if (response.status === 413) {
+          throw new Error('File too large for server processing. Please use a smaller HEIC image or convert to JPG first.');
+        }
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+      }
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -42,6 +56,9 @@ export default function Upload({ onUpload }: UploadProps) {
       return result.base64Image; // Server returns converted base64 image
     } catch (error) {
       console.error('Server HEIC conversion error:', error);
+      if (error instanceof Error) {
+        throw error; // Re-throw with original message
+      }
       throw new Error('Failed to convert HEIC image. Please try converting to JPG/PNG first.');
     }
   };
@@ -57,9 +74,12 @@ export default function Upload({ onUpload }: UploadProps) {
       return;
     }
 
-    // Validate file size (10MB limit)
-    if (file.size > 10 * 1024 * 1024) {
-      alert('File size must be less than 10MB');
+    // Validate file size - different limits for different formats
+    const maxSize = isHEICFile(file) ? 5 * 1024 * 1024 : 10 * 1024 * 1024; // 5MB for HEIC, 10MB for others
+    const sizeLabel = isHEICFile(file) ? '5MB' : '10MB';
+    
+    if (file.size > maxSize) {
+      alert(`File size must be less than ${sizeLabel}${isHEICFile(file) ? ' for HEIC conversion' : ''}`);
       return;
     }
 
@@ -69,9 +89,26 @@ export default function Upload({ onUpload }: UploadProps) {
       let base64Image: string;
 
       if (isHEICFile(file)) {
-        // Send HEIC to server for conversion
+        // Try server conversion first, fallback to user guidance
         console.log('HEIC file detected, sending to server for conversion...');
-        base64Image = await convertHEICOnServer(file);
+        try {
+          base64Image = await convertHEICOnServer(file);
+        } catch (serverError) {
+          console.error('Server conversion failed:', serverError);
+          
+          // Show helpful message and stop processing
+          const errorMsg = serverError instanceof Error ? serverError.message : 'Server conversion failed';
+          alert(
+            `HEIC conversion failed: ${errorMsg}\n\n` +
+            'Quick solutions:\n' +
+            '1. Try a smaller HEIC image (under 5MB)\n' +
+            '2. Convert to JPG using your iPhone Photos app:\n' +
+            '   • Open photo → Share → Copy → Paste into any app\n' +
+            '3. Change iPhone settings: Settings → Camera → Formats → "Most Compatible"\n\n' +
+            'This will save future photos as JPG instead of HEIC.'
+          );
+          return;
+        }
       } else {
         // Handle standard formats locally
         const reader = new FileReader();
@@ -210,7 +247,7 @@ export default function Upload({ onUpload }: UploadProps) {
                 Drag and drop an image here, or click to select
               </p>
               <p className="text-xs text-gray-600 mt-2 font-medium">
-                Supports: JPG, PNG, GIF, HEIC, HEIF (max 10MB)
+                Supports: JPG, PNG, GIF, HEIC, HEIF (HEIC max 5MB, others max 10MB)
               </p>
               <p className="text-xs text-green-600 mt-1">
                 ✨ HEIC files automatically converted!

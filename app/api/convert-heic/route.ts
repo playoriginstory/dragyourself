@@ -21,9 +21,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Only HEIC/HEIF files are supported' }, { status: 400 });
     }
 
-    // Validate file size (10MB limit)
-    if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: 'File size must be less than 10MB' }, { status: 400 });
+    // Validate file size (5MB limit for HEIC conversion)
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ error: 'HEIC file size must be less than 5MB for conversion' }, { status: 400 });
     }
 
     try {
