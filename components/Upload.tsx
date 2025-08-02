@@ -2,7 +2,7 @@
 import { useState, useRef } from 'react';
 
 interface UploadProps {
-  onUpload: (file: File) => void;
+  onUpload: (file: string) => void; // 👈 Updated to pass base64 string
 }
 
 export default function Upload({ onUpload }: UploadProps) {
@@ -23,15 +23,14 @@ export default function Upload({ onUpload }: UploadProps) {
       return;
     }
 
-    // Create preview
+    // Create preview and extract base64
     const reader = new FileReader();
     reader.onload = (e) => {
-      setPreview(e.target?.result as string);
+      const base64 = e.target?.result as string; // ✅ Define base64 here
+      setPreview(base64);
+      onUpload(base64); // ✅ Use base64
     };
     reader.readAsDataURL(file);
-
-    // Call parent callback
-    onUpload(base64);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,7 +43,7 @@ export default function Upload({ onUpload }: UploadProps) {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const file = e.dataTransfer.files?.[0];
     if (file) {
       handleFileSelect(file);
@@ -92,7 +91,7 @@ export default function Upload({ onUpload }: UploadProps) {
           onChange={handleFileChange}
           className="hidden"
         />
-        
+
         {preview ? (
           <div className="space-y-4">
             <img
