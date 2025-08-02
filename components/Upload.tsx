@@ -9,7 +9,7 @@ interface UploadProps {
 export default function Upload({ onUpload }: UploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [isConverting, setIsConverting] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isHEICFile = (file: File): boolean => {
@@ -23,105 +23,33 @@ export default function Upload({ onUpload }: UploadProps) {
     );
   };
 
-  const convertHEICToJPEG = async (file: File): Promise<File> => {
+  const convertHEICOnServer = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
     try {
-      // Try to load heic2any with better error handling
-      let heic2any;
-      try {
-        const module = await import('heic2any');
-        heic2any = module.default;
-      } catch (importError) {
-        console.error('Failed to load heic2any:', importError);
-        throw new Error('HEIC conversion library not available. Please convert your image to JPG/PNG first.');
-      }
-
-      if (!heic2any) {
-        throw new Error('HEIC conversion library not properly loaded.');
-      }
-
-      console.log('Starting HEIC conversion...');
-      
-      const convertedBlob = await heic2any({
-        blob: file,
-        toType: 'image/jpeg',
+      const response = await fetch('/api/convert-heic', {
+        method: 'POST',
+        body: formData,
       });
 
-      console.log('HEIC conversion completed, processing result...');
-
-      // Handle both single blob and array of blobs
-      const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
-      
-      if (!blob || !(blob instanceof Blob)) {
-        throw new Error('Conversion failed - invalid result from converter');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'HEIC conversion failed');
       }
 
-      // Verify the converted blob has content
-      if (blob.size === 0) {
-        throw new Error('Conversion failed - empty result');
-      }
-
-      // Create new file with proper name and type
-      const convertedFile = new File(
-        [blob],
-        file.name.replace(/\.(heic|heif)$/i, '.jpg'),
-        { 
-          type: 'image/jpeg',
-          lastModified: Date.now()
-        }
-      );
-
-      console.log('HEIC conversion successful, file size:', convertedFile.size);
-      return convertedFile;
-
+      const result = await response.json();
+      return result.base64Image; // Server returns converted base64 image
     } catch (error) {
-      console.error('HEIC conversion error details:', error);
-      
-      // Provide more specific error messages
-      if (error instanceof Error) {
-        if (error.message.includes('not available') || error.message.includes('not properly loaded')) {
-          throw error; // Re-throw library loading errors as-is
-        }
-        throw new Error(`HEIC conversion failed: ${error.message}`);
-      }
-      
-      throw new Error('HEIC conversion failed with unknown error. Please try converting to JPG/PNG first.');
+      console.error('Server HEIC conversion error:', error);
+      throw new Error('Failed to convert HEIC image. Please try converting to JPG/PNG first.');
     }
-  };
-
-  const processImageFile = async (file: File): Promise<File> => {
-    // If it's a HEIC file, try to convert it
-    if (isHEICFile(file)) {
-      console.log('HEIC file detected, attempting conversion...');
-      setIsConverting(true);
-      try {
-        const convertedFile = await convertHEICToJPEG(file);
-        return convertedFile;
-      } finally {
-        setIsConverting(false);
-      }
-    }
-    
-    // For other image types, return as-is
-    return file;
   };
 
   const handleFileSelect = async (file: File) => {
     console.log('File selected:', file.name, file.type, file.size);
 
-    // For HEIC files, show a more helpful message upfront
-    if (isHEICFile(file)) {
-      const shouldProceed = window.confirm(
-        'This is a HEIC/HEIF image file. We\'ll try to convert it to JPG format. ' +
-        'If conversion fails, please manually convert your image to JPG or PNG first. ' +
-        'Continue with conversion?'
-      );
-      
-      if (!shouldProceed) {
-        return;
-      }
-    }
-
-    // Validate file type (more permissive check)
+    // Validate file type - allow HEIC since we'll convert server-side
     const isValidImage = file.type.startsWith('image/') || isHEICFile(file);
     
     if (!isValidImage) {
@@ -136,43 +64,34 @@ export default function Upload({ onUpload }: UploadProps) {
     }
 
     try {
-      // Process the file (convert HEIC if needed)
-      const processedFile = await processImageFile(file);
-      
-      console.log('Processed file:', processedFile.name, processedFile.type, processedFile.size);
-      
-      // Convert to base64
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64 = e.target?.result as string;
-        console.log('Base64 conversion completed, length:', base64.length);
-        setPreview(base64);
-        onUpload(base64);
-      };
-      
-      reader.onerror = (error) => {
-        console.error('FileReader error:', error);
-        alert('Failed to read the processed image. Please try again.');
-      };
+      setIsProcessing(true);
 
-      reader.readAsDataURL(processedFile);
+      let base64Image: string;
+
+      if (isHEICFile(file)) {
+        // Send HEIC to server for conversion
+        console.log('HEIC file detected, sending to server for conversion...');
+        base64Image = await convertHEICOnServer(file);
+      } else {
+        // Handle standard formats locally
+        const reader = new FileReader();
+        base64Image = await new Promise<string>((resolve, reject) => {
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.onerror = () => reject(new Error('Failed to read image file'));
+          reader.readAsDataURL(file);
+        });
+      }
+
+      console.log('Image processing completed');
+      setPreview(base64Image);
+      onUpload(base64Image);
       
     } catch (error) {
       console.error('Image processing error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Something went wrong while processing your image.';
-      
-      // Show a more user-friendly message for HEIC conversion failures
-      if (isHEICFile(file)) {
-        alert(
-          'HEIC conversion failed. Please try one of these options:\n\n' +
-          '1. Convert your HEIC image to JPG/PNG using your phone\'s photo app\n' +
-          '2. Use a different image in JPG/PNG format\n' +
-          '3. Try uploading the image again\n\n' +
-          `Technical error: ${errorMessage}`
-        );
-      } else {
-        alert(errorMessage);
-      }
+      alert(errorMessage);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -199,7 +118,7 @@ export default function Upload({ onUpload }: UploadProps) {
   };
 
   const handleClick = () => {
-    if (!isConverting) {
+    if (!isProcessing) {
       fileInputRef.current?.click();
     }
   };
@@ -211,11 +130,10 @@ export default function Upload({ onUpload }: UploadProps) {
 
   return (
     <div className="space-y-4">
-      {/* Add helpful notice for HEIC users */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-        <p className="text-blue-800">
-          📱 <strong>iPhone users:</strong> If you have issues with HEIC images, 
-          go to Settings → Camera → Formats and select "Most Compatible" for better compatibility.
+      {/* Success message for HEIC support */}
+      <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm">
+        <p className="text-green-800">
+          ✅ <strong>iPhone HEIC support enabled!</strong> We'll automatically convert HEIC images to JPG for you.
         </p>
       </div>
 
@@ -223,7 +141,7 @@ export default function Upload({ onUpload }: UploadProps) {
         className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200 ${
           isDragging
             ? 'border-pink-500 bg-pink-50'
-            : isConverting
+            : isProcessing
             ? 'border-yellow-400 bg-yellow-50 cursor-not-allowed'
             : 'border-gray-300 hover:border-pink-400 hover:bg-gray-50'
         }`}
@@ -238,18 +156,18 @@ export default function Upload({ onUpload }: UploadProps) {
           accept="image/*,.heic,.heif"
           onChange={handleFileChange}
           className="hidden"
-          disabled={isConverting}
+          disabled={isProcessing}
         />
 
-        {isConverting ? (
+        {isProcessing ? (
           <div className="space-y-4">
-            <div className="text-4xl animate-spin">⏳</div>
+            <div className="text-4xl animate-pulse">🔄</div>
             <div>
               <p className="text-lg font-medium text-yellow-700">
-                Converting HEIC image to JPG...
+                Processing image...
               </p>
               <p className="text-sm text-yellow-600 mt-1">
-                This may take a few seconds, please wait
+                Converting HEIC to JPG format
               </p>
             </div>
           </div>
@@ -291,11 +209,11 @@ export default function Upload({ onUpload }: UploadProps) {
               <p className="text-sm text-gray-500 mt-1">
                 Drag and drop an image here, or click to select
               </p>
-              <p className="text-xs text-gray-400 mt-2">
-                Supports JPG, PNG, GIF, HEIC, HEIF (max 10MB)
+              <p className="text-xs text-gray-600 mt-2 font-medium">
+                Supports: JPG, PNG, GIF, HEIC, HEIF (max 10MB)
               </p>
-              <p className="text-xs text-gray-500 mt-1">
-                For best results, use JPG or PNG format
+              <p className="text-xs text-green-600 mt-1">
+                ✨ HEIC files automatically converted!
               </p>
             </div>
           </div>
