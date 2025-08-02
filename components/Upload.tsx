@@ -1,68 +1,69 @@
 'use client';
-import React from 'react';
-import { useState, useRef } from 'react';
+
+import React, { useState, useRef } from 'react';
 import heic2any from 'heic2any';
 
-
 interface UploadProps {
-  onUpload: (file: string) => void; // 👈 Updated to pass base64 string
+  onUpload: (file: string) => void; // base64 string
 }
 
 export default function Upload({ onUpload }: UploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleFileSelect = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file (JPG, PNG, GIF, etc.)');
+    if (
+      !file.type.startsWith('image/') &&
+      !file.name.toLowerCase().endsWith('.heic') &&
+      !file.name.toLowerCase().endsWith('.heif')
+    ) {
+      alert('Please select a valid image file (JPG, PNG, HEIC, etc.)');
       return;
     }
-  
+
     if (file.size > 10 * 1024 * 1024) {
       alert('File size must be less than 10MB');
       return;
     }
-  
-    let previewUrl: string;
-    let convertedFile: File | null = null;
-  
+
     try {
-      if (file.type === 'image/heic' || file.name.endsWith('.heic') || file.name.endsWith('.heif')) {
-        const blob = await heic2any({ blob: file, toType: 'image/jpeg' });
-        convertedFile = new File([blob as BlobPart], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
+      let finalFile = file;
+
+      if (
+        file.type === 'image/heic' ||
+        file.name.toLowerCase().endsWith('.heic') ||
+        file.name.toLowerCase().endsWith('.heif')
+      ) {
+        const convertedBlob = await heic2any({ blob: file, toType: 'image/jpeg' });
+        finalFile = new File([convertedBlob as BlobPart], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
           type: 'image/jpeg',
         });
-      } else {
-        convertedFile = file;
       }
-  
+
       const reader = new FileReader();
       reader.onload = (e) => {
-        setPreview(e.target?.result as string);
-        onUpload(e.target?.result as string); // base64
+        const base64 = e.target?.result as string;
+        setPreview(base64);
+        onUpload(base64);
       };
-      reader.readAsDataURL(convertedFile);
+      reader.readAsDataURL(finalFile);
     } catch (error) {
-      console.error('Error converting HEIC:', error);
-      alert('Failed to convert HEIC image. Please try another file.');
+      console.error('HEIC conversion failed:', error);
+      alert('Failed to convert HEIC image. Try a different file.');
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      handleFileSelect(file);
-    }
+    if (file) handleFileSelect(file);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-
     const file = e.dataTransfer.files?.[0];
-    if (file) {
-      handleFileSelect(file);
-    }
+    if (file) handleFileSelect(file);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -81,9 +82,7 @@ export default function Upload({ onUpload }: UploadProps) {
 
   const handleClear = () => {
     setPreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
@@ -102,7 +101,7 @@ export default function Upload({ onUpload }: UploadProps) {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,.heic,.heif"
           onChange={handleFileChange}
           className="hidden"
         />
@@ -146,7 +145,7 @@ export default function Upload({ onUpload }: UploadProps) {
                 Drag and drop an image here, or click to select
               </p>
               <p className="text-xs text-gray-400 mt-2">
-                Supports JPG, PNG, GIF (max 10MB)
+                Supports JPG, PNG, GIF, HEIC (max 10MB)
               </p>
             </div>
           </div>

@@ -1,36 +1,30 @@
 'use client';
-import React from 'react';
-import { useState, useRef } from 'react';
+
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Upload from '../components/Upload';
 import StyleSelector from '../components/StyleSelector';
 
 export default function HomePage() {
   const router = useRouter();
-  const [style, setStyle] = useState<string | null>(null); // single style
-  const fileRef = useRef<File | null>(null);
+
+  const [style, setStyle] = useState<string | null>(null);
+  const [base64Image, setBase64Image] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
-  const [competitionResults, setCompetitionResults] = useState<Array<{ success: boolean; imageUrl?: string; style: string }>>([]);
+  const [competitionResults, setCompetitionResults] = useState<
+    Array<{ success: boolean; imageUrl?: string; style: string }>
+  >([]);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [progress, setProgress] = useState('');
   const [mode, setMode] = useState<'single' | 'competition'>('single');
 
-const handleUpload = (base64: string) => {
-    console.log('Uploaded base64 image:', base64);
+  const handleUpload = (base64: string) => {
+    setBase64Image(base64);
   };
-  
-
-  const convertFileToBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
 
   const handleSubmit = async () => {
-    if (!fileRef.current) {
+    if (!base64Image) {
       alert('Please upload an image');
       return;
     }
@@ -46,21 +40,21 @@ const handleUpload = (base64: string) => {
     setSelectedIdx(null);
 
     try {
-      const fileBase64 = await convertFileToBase64(fileRef.current);
       const payload = {
-        file: fileBase64,
-        styles: mode === 'competition'
-          ? [
-              'Glamazon Queen',
-              'Cyberpunk Diva',
-              'Disco Inferno',
-              'Baroque Beauty',
-              'Pastel Princess',
-              'Fierce Femme',
-              'Alien Royalty',
-              'Fantasy Fairy',
-            ]
-          : [style],
+        file: base64Image,
+        styles:
+          mode === 'competition'
+            ? [
+                'Glamazon Queen',
+                'Cyberpunk Diva',
+                'Disco Inferno',
+                'Baroque Beauty',
+                'Pastel Princess',
+                'Fierce Femme',
+                'Alien Royalty',
+                'Fantasy Fairy',
+              ]
+            : [style],
         isCompetition: mode === 'competition',
       };
 
@@ -89,13 +83,11 @@ const handleUpload = (base64: string) => {
     }
   };
 
-  const canSubmit = !!fileRef.current && (mode === 'competition' || !!style);
+  const canSubmit = !!base64Image && (mode === 'competition' || !!style);
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <h1 className="text-3xl font-bold text-center">
-        ✨ Drag Yourself ✨
-      </h1>
+      <h1 className="text-3xl font-bold text-center">✨ Drag Yourself ✨</h1>
 
       <Upload onUpload={handleUpload} />
 
@@ -201,7 +193,7 @@ const handleUpload = (base64: string) => {
               onClick={() => {
                 setResultUrl(null);
                 setStyle(null);
-                fileRef.current = null;
+                setBase64Image(null);
               }}
               className="px-4 py-2 bg-gray-500 text-white rounded"
             >
@@ -260,7 +252,7 @@ const handleUpload = (base64: string) => {
               onClick={() => {
                 setCompetitionResults([]);
                 setSelectedIdx(null);
-                fileRef.current = null;
+                setBase64Image(null);
               }}
               className="px-6 py-3 bg-gray-500 text-white rounded"
             >
@@ -269,6 +261,6 @@ const handleUpload = (base64: string) => {
           </div>
         </div>
       )}
-    </div> // closes top-level container
+    </div>
   );
 }
