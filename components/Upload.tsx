@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import heic2any from 'heic2any';
 
 interface UploadProps {
   onUpload: (file: string) => void; // base64 string
@@ -21,26 +20,29 @@ export default function Upload({ onUpload }: UploadProps) {
       alert('Please select a valid image file (JPG, PNG, HEIC, etc.)');
       return;
     }
-
+  
     if (file.size > 10 * 1024 * 1024) {
       alert('File size must be less than 10MB');
       return;
     }
-
+  
     try {
       let finalFile = file;
-
+  
       if (
         file.type === 'image/heic' ||
         file.name.toLowerCase().endsWith('.heic') ||
         file.name.toLowerCase().endsWith('.heif')
       ) {
+        const heic2any = (await import('heic2any')).default; // ⬅️ Safe dynamic import
         const convertedBlob = await heic2any({ blob: file, toType: 'image/jpeg' });
-        finalFile = new File([convertedBlob as BlobPart], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
-          type: 'image/jpeg',
-        });
+        finalFile = new File(
+          [convertedBlob as BlobPart],
+          file.name.replace(/\.(heic|heif)$/i, '.jpg'),
+          { type: 'image/jpeg' }
+        );
       }
-
+  
       const reader = new FileReader();
       reader.onload = (e) => {
         const base64 = e.target?.result as string;
@@ -53,6 +55,7 @@ export default function Upload({ onUpload }: UploadProps) {
       alert('Failed to convert HEIC image. Try a different file.');
     }
   };
+  
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
