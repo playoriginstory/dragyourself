@@ -1,4 +1,5 @@
 'use client';
+import React from 'react';
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Upload from '../components/Upload';
@@ -15,9 +16,10 @@ export default function HomePage() {
   const [progress, setProgress] = useState('');
   const [mode, setMode] = useState<'single' | 'competition'>('single');
 
-  const handleUpload = (file: File) => {
-    fileRef.current = file;
+const handleUpload = (base64: string) => {
+    console.log('Uploaded base64 image:', base64);
   };
+  
 
   const convertFileToBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
