@@ -1,6 +1,8 @@
 'use client';
 import React from 'react';
 import { useState, useRef } from 'react';
+import heic2any from 'heic2any';
+
 
 interface UploadProps {
   onUpload: (file: string) => void; // 👈 Updated to pass base64 string
@@ -10,28 +12,40 @@ export default function Upload({ onUpload }: UploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileSelect = (file: File) => {
-    // Validate file type
+  const handleFileSelect = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       alert('Please select an image file (JPG, PNG, GIF, etc.)');
       return;
     }
-
-    // Validate file size (max 10MB)
+  
     if (file.size > 10 * 1024 * 1024) {
       alert('File size must be less than 10MB');
       return;
     }
-
-    // Create preview and extract base64
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const base64 = e.target?.result as string; // ✅ Define base64 here
-      setPreview(base64);
-      onUpload(base64); // ✅ Use base64
-    };
-    reader.readAsDataURL(file);
+  
+    let previewUrl: string;
+    let convertedFile: File | null = null;
+  
+    try {
+      if (file.type === 'image/heic' || file.name.endsWith('.heic') || file.name.endsWith('.heif')) {
+        const blob = await heic2any({ blob: file, toType: 'image/jpeg' });
+        convertedFile = new File([blob as BlobPart], file.name.replace(/\.(heic|heif)$/i, '.jpg'), {
+          type: 'image/jpeg',
+        });
+      } else {
+        convertedFile = file;
+      }
+  
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreview(e.target?.result as string);
+        onUpload(e.target?.result as string); // base64
+      };
+      reader.readAsDataURL(convertedFile);
+    } catch (error) {
+      console.error('Error converting HEIC:', error);
+      alert('Failed to convert HEIC image. Please try another file.');
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
