@@ -40,7 +40,7 @@ export default function Upload({ onUpload }: UploadProps) {
     }
 
     try {
-      // For ALL files (including HEIC), just convert to base64 and let the generation API handle HEIC conversion
+      // For ALL files, convert to base64
       const reader = new FileReader();
       const base64Image = await new Promise<string>((resolve, reject) => {
         reader.onload = (e) => resolve(e.target?.result as string);
@@ -49,8 +49,15 @@ export default function Upload({ onUpload }: UploadProps) {
       });
 
       console.log('Image loaded successfully');
-      setPreview(base64Image);
-      onUpload(base64Image);
+      
+      // For HEIC files, show a special preview since browsers can't display HEIC directly
+      if (isHEICFile(file)) {
+        setPreview('HEIC_PLACEHOLDER'); // Special marker for HEIC files
+      } else {
+        setPreview(base64Image); // Normal preview for other formats
+      }
+      
+      onUpload(base64Image); // Always send the actual base64 data
       
     } catch (error) {
       console.error('Image processing error:', error);
@@ -120,11 +127,24 @@ export default function Upload({ onUpload }: UploadProps) {
 
         {preview ? (
           <div className="space-y-4">
-            <img
-              src={preview}
-              alt="Preview"
-              className="max-w-full max-h-64 mx-auto rounded-lg shadow-md"
-            />
+            {preview === 'HEIC_PLACEHOLDER' ? (
+              // Special preview for HEIC files since browsers can't display them
+              <div className="max-w-full max-h-64 mx-auto rounded-lg shadow-md bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-dashed border-blue-300 flex flex-col items-center justify-center p-8">
+                <div className="text-6xl mb-4">📱</div>
+                <p className="text-lg font-semibold text-blue-800">HEIC Image Ready</p>
+                <p className="text-sm text-blue-600 text-center mt-2">
+                  iPhone HEIC image loaded successfully!<br/>
+                  Will be converted during generation.
+                </p>
+              </div>
+            ) : (
+              // Normal preview for other image formats
+              <img
+                src={preview}
+                alt="Preview"
+                className="max-w-full max-h-64 mx-auto rounded-lg shadow-md"
+              />
+            )}
             <div className="flex space-x-2 justify-center">
               <button
                 onClick={(e) => {
