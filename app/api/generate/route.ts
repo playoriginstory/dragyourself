@@ -7,6 +7,42 @@ fal.config({
   credentials: process.env.FAL_KEY, // Server-side only
 });
 
+async function convertHEICIfNeeded(base64Image: string): Promise<string> {
+  // Check if it's a HEIC image by looking at the data URL prefix
+  if (base64Image.startsWith('data:image/heic') || base64Image.startsWith('data:image/heif')) {
+    try {
+      console.log('HEIC image detected, converting to JPEG...');
+      
+      // Import heic-convert
+      const heicConvert = await import('heic-convert');
+      const convert = heicConvert.default;
+      
+      // Extract base64 data and convert to buffer
+      const base64Data = base64Image.replace(/^data:image\/[a-z]+;base64,/, '');
+      const inputBuffer = Buffer.from(base64Data, 'base64');
+      
+      // Convert HEIC to JPEG
+      const outputBuffer = await convert({
+        buffer: inputBuffer,
+        format: 'JPEG',
+        quality: 0.9,
+      });
+      
+      // Convert back to base64
+      const convertedBase64 = `data:image/jpeg;base64,${outputBuffer.toString('base64')}`;
+      console.log('HEIC conversion successful');
+      return convertedBase64;
+      
+    } catch (error) {
+      console.error('HEIC conversion failed:', error);
+      throw new Error('Failed to convert HEIC image. Please use JPG/PNG format.');
+    }
+  }
+  
+  // Return original if not HEIC
+  return base64Image;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -20,8 +56,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No styles selected' }, { status: 400 });
     }
 
+    // Convert HEIC to JPEG if needed
+    let processedFile;
+    try {
+      processedFile = await convertHEICIfNeeded(file);
+    } catch (conversionError) {
+      return NextResponse.json({ 
+        error: conversionError instanceof Error ? conversionError.message : 'Image conversion failed' 
+      }, { status: 400 });
+    }
+
     // Convert base64 to File object for upload
-    const base64Data = file.replace(/^data:image\/[a-z]+;base64,/, '');
+    const base64Data = processedFile.replace(/^data:image\/[a-z]+;base64,/, '');
     const buffer = Buffer.from(base64Data, 'base64');
     const fileBlob = new Blob([buffer], { type: 'image/jpeg' });
     const uploadFile = new File([fileBlob], 'uploaded-image.jpg', { type: 'image/jpeg' });

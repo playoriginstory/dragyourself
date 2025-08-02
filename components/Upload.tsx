@@ -9,7 +9,6 @@ interface UploadProps {
 export default function Upload({ onUpload }: UploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isHEICFile = (file: File): boolean => {
@@ -23,50 +22,10 @@ export default function Upload({ onUpload }: UploadProps) {
     );
   };
 
-  const convertHEICOnServer = async (file: File): Promise<string> => {
-    // Additional file size check for server upload
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit for HEIC conversion
-      throw new Error('HEIC files must be smaller than 5MB for conversion. Please use a smaller image or convert to JPG first.');
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const response = await fetch('/api/convert-heic', {
-        method: 'POST',
-        body: formData,
-      });
-
-      // Check if response is actually JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        if (response.status === 413) {
-          throw new Error('File too large for server processing. Please use a smaller HEIC image or convert to JPG first.');
-        }
-        throw new Error(`Server error: ${response.status} ${response.statusText}`);
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'HEIC conversion failed');
-      }
-
-      const result = await response.json();
-      return result.base64Image; // Server returns converted base64 image
-    } catch (error) {
-      console.error('Server HEIC conversion error:', error);
-      if (error instanceof Error) {
-        throw error; // Re-throw with original message
-      }
-      throw new Error('Failed to convert HEIC image. Please try converting to JPG/PNG first.');
-    }
-  };
-
   const handleFileSelect = async (file: File) => {
     console.log('File selected:', file.name, file.type, file.size);
 
-    // Validate file type - allow HEIC since we'll convert server-side
+    // Validate file type - allow HEIC since generation API will handle conversion
     const isValidImage = file.type.startsWith('image/') || isHEICFile(file);
     
     if (!isValidImage) {
@@ -74,52 +33,22 @@ export default function Upload({ onUpload }: UploadProps) {
       return;
     }
 
-    // Validate file size - different limits for different formats
-    const maxSize = isHEICFile(file) ? 5 * 1024 * 1024 : 10 * 1024 * 1024; // 5MB for HEIC, 10MB for others
-    const sizeLabel = isHEICFile(file) ? '5MB' : '10MB';
-    
-    if (file.size > maxSize) {
-      alert(`File size must be less than ${sizeLabel}${isHEICFile(file) ? ' for HEIC conversion' : ''}`);
+    // Validate file size - keep original 10MB limit since conversion happens in generation API
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB');
       return;
     }
 
     try {
-      setIsProcessing(true);
+      // For ALL files (including HEIC), just convert to base64 and let the generation API handle HEIC conversion
+      const reader = new FileReader();
+      const base64Image = await new Promise<string>((resolve, reject) => {
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.onerror = () => reject(new Error('Failed to read image file'));
+        reader.readAsDataURL(file);
+      });
 
-      let base64Image: string;
-
-      if (isHEICFile(file)) {
-        // Try server conversion first, fallback to user guidance
-        console.log('HEIC file detected, sending to server for conversion...');
-        try {
-          base64Image = await convertHEICOnServer(file);
-        } catch (serverError) {
-          console.error('Server conversion failed:', serverError);
-          
-          // Show helpful message and stop processing
-          const errorMsg = serverError instanceof Error ? serverError.message : 'Server conversion failed';
-          alert(
-            `HEIC conversion failed: ${errorMsg}\n\n` +
-            'Quick solutions:\n' +
-            '1. Try a smaller HEIC image (under 5MB)\n' +
-            '2. Convert to JPG using your iPhone Photos app:\n' +
-            '   • Open photo → Share → Copy → Paste into any app\n' +
-            '3. Change iPhone settings: Settings → Camera → Formats → "Most Compatible"\n\n' +
-            'This will save future photos as JPG instead of HEIC.'
-          );
-          return;
-        }
-      } else {
-        // Handle standard formats locally
-        const reader = new FileReader();
-        base64Image = await new Promise<string>((resolve, reject) => {
-          reader.onload = (e) => resolve(e.target?.result as string);
-          reader.onerror = () => reject(new Error('Failed to read image file'));
-          reader.readAsDataURL(file);
-        });
-      }
-
-      console.log('Image processing completed');
+      console.log('Image loaded successfully');
       setPreview(base64Image);
       onUpload(base64Image);
       
@@ -127,8 +56,6 @@ export default function Upload({ onUpload }: UploadProps) {
       console.error('Image processing error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Something went wrong while processing your image.';
       alert(errorMessage);
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -155,9 +82,7 @@ export default function Upload({ onUpload }: UploadProps) {
   };
 
   const handleClick = () => {
-    if (!isProcessing) {
-      fileInputRef.current?.click();
-    }
+    fileInputRef.current?.click();
   };
 
   const handleClear = () => {
@@ -170,7 +95,7 @@ export default function Upload({ onUpload }: UploadProps) {
       {/* Success message for HEIC support */}
       <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm">
         <p className="text-green-800">
-          ✅ <strong>iPhone HEIC support enabled!</strong> We'll automatically convert HEIC images to JPG for you.
+          ✅ <strong>iPhone HEIC support enabled!</strong> HEIC images will be automatically converted during processing.
         </p>
       </div>
 
@@ -178,8 +103,6 @@ export default function Upload({ onUpload }: UploadProps) {
         className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200 ${
           isDragging
             ? 'border-pink-500 bg-pink-50'
-            : isProcessing
-            ? 'border-yellow-400 bg-yellow-50 cursor-not-allowed'
             : 'border-gray-300 hover:border-pink-400 hover:bg-gray-50'
         }`}
         onDrop={handleDrop}
@@ -193,22 +116,9 @@ export default function Upload({ onUpload }: UploadProps) {
           accept="image/*,.heic,.heif"
           onChange={handleFileChange}
           className="hidden"
-          disabled={isProcessing}
         />
 
-        {isProcessing ? (
-          <div className="space-y-4">
-            <div className="text-4xl animate-pulse">🔄</div>
-            <div>
-              <p className="text-lg font-medium text-yellow-700">
-                Processing image...
-              </p>
-              <p className="text-sm text-yellow-600 mt-1">
-                Converting HEIC to JPG format
-              </p>
-            </div>
-          </div>
-        ) : preview ? (
+        {preview ? (
           <div className="space-y-4">
             <img
               src={preview}
@@ -247,10 +157,10 @@ export default function Upload({ onUpload }: UploadProps) {
                 Drag and drop an image here, or click to select
               </p>
               <p className="text-xs text-gray-600 mt-2 font-medium">
-                Supports: JPG, PNG, GIF, HEIC, HEIF (HEIC max 5MB, others max 10MB)
+                Supports: JPG, PNG, GIF, HEIC, HEIF (max 10MB)
               </p>
               <p className="text-xs text-green-600 mt-1">
-                ✨ HEIC files automatically converted!
+                ✨ HEIC files automatically converted during generation!
               </p>
             </div>
           </div>
