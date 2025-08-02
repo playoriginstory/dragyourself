@@ -10,6 +10,7 @@
   "dependencies": {
     "@fal-ai/client": "^1.6.1",
     "@fal-ai/server-proxy": "^1.1.1",
+    "@radix-ui/react-icons": "^1.3.2",
     "@remotion/compositor-linux-x64-gnu": "^4.0.329",
     "next": "14.0.0",
     "react": "18.2.0",
