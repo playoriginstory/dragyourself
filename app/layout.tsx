@@ -4,8 +4,8 @@ import "../styles/globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Drag Yourself",
-  description: "Transform your photo into a fabulous drag version of you.",
+  title: "Which 90s Supermodel Are You?",
+  description: "Upload a photo, answer 4 questions, and get your 90s fashion image. Then make a lipsync video.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
