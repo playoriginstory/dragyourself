@@ -4,8 +4,8 @@ import "../styles/globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Which 90s Supermodel Are You?",
-  description: "Upload a photo, answer 4 questions, and get your 90s fashion image. Then make a lipsync video.",
+  title: "Back to the 90s",
+  description: "90s fashion generator and pop quiz.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

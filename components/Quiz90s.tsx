@@ -12,49 +12,80 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
   </div>
 );
 
-const Chip = ({ active, onClick, children }:{
-  active: boolean; onClick: () => void; children: React.ReactNode
+const Chip = ({
+  active,
+  onClick,
+  children,
+  disabled,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  disabled?: boolean;
 }) => (
   <button
     type="button"
-    onClick={onClick}
-    className={`px-3 py-2 rounded-lg border text-sm transition
-    ${active ? "bg-black text-white border-black" : "bg-white border-gray-300 hover:border-black"}`}
+    onClick={!disabled ? onClick : undefined}
+    disabled={disabled}
+    className={`px-3 py-2 rounded-lg border text-sm transition flex items-center gap-1
+      ${
+        disabled
+          ? 'bg-gray-200 text-gray-400 border-gray-200 cursor-not-allowed'
+          : active
+          ? 'bg-black text-white border-black'
+          : 'bg-white border-gray-300 hover:border-black'
+      }`}
   >
     {children}
+    {disabled && <span className="ml-1">🔒</span>}
   </button>
 );
 
 export default function Quiz90s({ value, onChange }: Props) {
-  const set = (k: keyof QuizAnswers, v: string) => onChange({ ...value, [k]: v });
+  const set = (v: string) => onChange({ ...value, style: v });
 
-  const runway = ["Power-walk like Naomi","Cool minimal like Christy","Couture chameleon like Linda","Effortless grunge like Kate"];
-  const house  = ["Versace Baroque","Calvin Klein minimalism","Chanel tweed fantasy","Dolce & Gabbana Sicilian glamour"];
-  const edit   = ["High-gloss Vogue cover","Backstage runway candids","Studio beauty close-up","Street-style off-duty"];
-  const glam   = ["Brown lip liner + smokey eye","Super-shiny gloss + soft contour","Matte red lip + sharp liner","Dewy skin + brushed brows"];
+  const styleOptions = [
+    'Lad Britpop / Madchester',
+    'Sophisticated Britpop',
+    'Britpop Casual',
+    '90s Pop Female',
+    'All Saints urban cool',
+    'Boy Band',
+    'Red Carpet Glamour',
+    '90s Grunge',
+    '90s Rave',
+    'US Hip Hop - Street Wear',
+    'Supermodel',
+    'Garage | Drums and Bass Look',
+  ];
 
-  const group = (opts: string[], key: keyof QuizAnswers) => (
-    <div className="flex flex-wrap gap-2">
-      {opts.map(o => (
-        <Chip key={o} active={value[key]===o} onClick={()=>set(key,o)}>{o}</Chip>
-      ))}
-    </div>
-  );
+  // ✅ Locked styles (until quiz is completed)
+  const LOCKED_STYLES = [
+    'US Hip Hop - Street Wear',
+    'Supermodel',
+    'Red Carpet Glamour',
+    'Garage | Drums and Bass Look',
+  ];
 
   return (
     <div className="bg-gray-50 rounded-lg p-4 space-y-6">
-      <Field label="1) Runway energy">{group(runway,'runway')}</Field>
-      <Field label="2) Fashion house vibe">{group(house,'house')}</Field>
-      <Field label="3) Editorial mood">{group(edit,'editorial')}</Field>
-      <Field label="4) Glam details">{group(glam,'glam')}</Field>
-
-      <Field label="Optional: Add your own 90s phrase">
-        <input
-          value={value.custom ?? ""}
-          onChange={e=>set('custom', e.target.value)}
-          placeholder={`e.g., "Pepsi '92 hair wind"`}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2"
-        />
+      <Field label="✨ Pick Your 90s Style Persona">
+        <div className="flex flex-wrap gap-2">
+          {styleOptions.map((o) => (
+            <Chip
+              key={o}
+              active={value.style === o}
+              onClick={() => set(o)}
+              disabled={LOCKED_STYLES.includes(o)}
+            >
+              {LOCKED_STYLES.includes(o) ? (
+                <span title="Complete the quiz to unlock!">{o}</span>
+              ) : (
+                o
+              )}
+            </Chip>
+          ))}
+        </div>
       </Field>
     </div>
   );
