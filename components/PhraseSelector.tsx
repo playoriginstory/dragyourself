@@ -16,7 +16,7 @@ export default function PhraseSelector({
           <button
             key={phrase}
             onClick={() => onPick(phrase)}
-            className="text-xs bg-gray-100 p-2 rounded hover:bg-pink-100"
+            className="text-xs bg-gray-100 p-2 rounded hover:bg-black-100"
           >
             {phrase}
           </button>

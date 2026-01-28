@@ -122,7 +122,7 @@ export default function HomePage() {
           {/* ✅ Link replaced correctly */}
           <Link
             href="/quiz90s"
-            className="px-6 py-3 rounded-lg font-medium bg-pink-600 text-white hover:bg-pink-700 transition"
+            className="px-6 py-3 rounded-lg font-medium bg-black-600 text-white hover:bg-black-700 transition"
           >
             🎤 Ultimate 90s Quiz
           </Link>

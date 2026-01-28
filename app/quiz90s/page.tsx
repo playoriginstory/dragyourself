@@ -98,7 +98,7 @@ export default function Ultimate90sQuiz() {
             </button>
             <Link
               href="/"
-              className="px-6 py-3 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition"
+              className="px-6 py-3 bg-black-600 text-white rounded-lg hover:bg-blackk-700 transition"
             >
               🏠 Home
             </Link>

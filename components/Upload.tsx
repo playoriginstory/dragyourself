@@ -109,7 +109,7 @@ export default function Upload({ onUpload }: UploadProps) {
       <div
         className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200 ${
           isDragging
-            ? 'border-pink-500 bg-pink-50'
+            ? 'border-pink-500 bg-black-50'
             : 'border-gray-300 hover:border-pink-400 hover:bg-gray-50'
         }`}
         onDrop={handleDrop}

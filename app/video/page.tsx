@@ -5,10 +5,10 @@ import { useState } from 'react';
 import PhraseSelector from '../../components/PhraseSelector';
 
 const presetPhrases = [
-  'Serve face, serve looks, serve attitude.',
-  'I am the one you have been waiting for so wake it up',
-  'Eleganza extravaganza boots the house down.',
-  'You better work that camera, diva!',
+    "Go on then, have it.",
+    "Alright — let’s see what you’ve got.",
+    "This one’s a proper moment.",
+    "Yeah… that’s bang on."
 ];
 
 const voices = [
@@ -96,7 +96,7 @@ export default function VideoPage() {
         </select>
         <button
           onClick={handleSubmit}
-          className="bg-pink-600 text-white px-4 py-2 rounded w-full"
+          className="-600 text-white px-4 py-2 rounded w-full"
           disabled={loading}
         >
           {loading
