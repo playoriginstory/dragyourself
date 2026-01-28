@@ -66,7 +66,7 @@ export default function Ultimate90sQuiz() {
                   className={`px-4 py-2 rounded-lg border transition text-sm font-medium ${
                     selected
                       ? isCorrect
-                        ? 'bg-green-600 text-white border-green-600'
+                        ? 'bg-black-600 text-white border-green-600'
                         : isWrong
                         ? 'bg-red-600 text-white border-red-600'
                         : 'opacity-70 border-gray-300'

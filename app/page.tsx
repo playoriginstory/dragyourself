@@ -95,7 +95,7 @@ export default function HomePage() {
         📼 Back to the 90s 🕹️ 
       </h1>
       <p className="text-center text-gray-600">
-        Upload a photo, pick your 90s style persona, or take the Ultimate 90s Quiz.
+        Upload a photo (<3MB), pick your 90s style persona, and take the Ultimate 90s Quiz.
       </p>
 
       <Upload onUpload={(b64) => setBase64Image(b64)} />
