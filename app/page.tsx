@@ -92,10 +92,10 @@ export default function HomePage() {
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <h1 className="text-3xl font-bold text-center">
-        📼 Back to the 90s 🕹️ 
+        Back to the 90s 🕹️ 
       </h1>
       <p className="text-center text-gray-600">
-        Upload a photo (<3MB), pick your 90s style persona, and take the Ultimate 90s Quiz.
+        Upload a photo (~3MB), pick your 90s style persona, and take the Ultimate 90s Quiz.
       </p>
 
       <Upload onUpload={(b64) => setBase64Image(b64)} />
